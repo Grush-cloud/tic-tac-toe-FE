@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Online</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; margin: 20px auto; width: 320px; }
+        .cell { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 2em; background: #ddd; cursor: pointer; }
+        .cell.taken { cursor: not-allowed; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Online Tic Tac Toe</h1>
+    <input type="text" id="room" placeholder="Enter Room Code">
+    <button onclick="joinGame()">Join Game</button>
+    
+    <h2 id="status">Enter a room code to start</h2>
+    <div class="board" id="board"></div>
+    
+    <button id="restartBtn" class="hidden" onclick="restartGame()">Restart Game</button>
+
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io("https://tic-tac-toe-be-production.up.railway.app/"); // Adjust to match your backend
+        let room = "";
+        let currentPlayer = "";
+        let playerSymbol = "";
+
+        function joinGame() {
+            room = document.getElementById("room").value;
+            if (!room) return alert("Enter a valid room code!");
+
+            socket.emit("joinGame", room);
+        }
+
+        socket.on("gameState", (game) => {
+            document.getElementById("board").innerHTML = game.board.map((cell, i) => 
+                `<div class="cell ${cell ? 'taken' : ''}" onclick="makeMove(${i})">${cell || ""}</div>`
+            ).join("");
+
+            if (game.winner) {
+                document.getElementById("status").innerText = `Winner: ${game.winner}`;
+                document.getElementById("restartBtn").classList.remove("hidden");
+            } else if (game.draw) {
+                document.getElementById("status").innerText = "It's a draw!";
+                document.getElementById("restartBtn").classList.remove("hidden");
+            } else {
+                document.getElementById("status").innerText = `Turn: ${game.turn}`;
+                document.getElementById("restartBtn").classList.add("hidden");
+            }
+        });
+
+        function makeMove(index) {
+            socket.emit("makeMove", { room, index });
+        }
+        function restartGame() {
+    if (!room) return;
+    socket.emit("restartGame", room);
+}
+
+// Ensure players must take turns & restart works
+socket.on("gameState", (game) => {
+    document.getElementById("board").innerHTML = game.board.map((cell, i) => 
+        `<div class="cell ${cell ? 'taken' : ''}" onclick="makeMove(${i})">${cell || ""}</div>`
+    ).join("");
+
+    if (game.winner) {
+        document.getElementById("status").innerText = `Winner: ${game.winner}`;
+        document.getElementById("restartBtn").classList.remove("hidden");
+    } else if (game.draw) {
+        document.getElementById("status").innerText = "It's a draw!";
+        document.getElementById("restartBtn").classList.remove("hidden");
+    } else {
+        document.getElementById("status").innerText = `Turn: ${game.turn}`;
+        document.getElementById("restartBtn").classList.add("hidden"); // Hide restart button if game is active
+    }
+});
+
+    </script>
+
+</body>
+</html>
